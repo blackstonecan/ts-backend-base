@@ -8,6 +8,7 @@ const pool = new Pool({
   database: process.env.PG_DB_NAME,
   password: process.env.PG_DB_PASSWORD,
   port: Number(process.env.PG_DB_PORT),
+  max: 100
 });
 
 const query = async (text: string, params: any[]) : Promise<Response> => {
