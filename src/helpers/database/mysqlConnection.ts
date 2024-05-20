@@ -1,8 +1,8 @@
-import mysql, { Pool } from 'promise-mysql';
+import { Pool, PoolConnection, createPool } from 'promise-mysql';
 
 import Response from '../response/Response';
 
-const pool: Promise<Pool> = mysql.createPool({
+const pool: Promise<Pool> = createPool({
     host: process.env.MS_DB_HOST,
     user: process.env.MS_DB_USER,
     password: process.env.MS_DB_PASSWORD,
@@ -12,7 +12,7 @@ const pool: Promise<Pool> = mysql.createPool({
 });
 
 const query = async (text: string, params?: any[]): Promise<Response> => {
-    let connection: mysql.PoolConnection | undefined;
+    let connection: PoolConnection | null = null;
 
     try {
         connection = await (await pool).getConnection();
@@ -25,10 +25,15 @@ const query = async (text: string, params?: any[]): Promise<Response> => {
 
         return new Response(true, data);
     } catch (error: any) {
-        if (connection) await connection.rollback();
+        try {
+            if (connection) await connection.rollback();
+        } catch (rollbackError: any) {
+            console.log('Database rollback failed.', rollbackError);
+        }
+
         return Response.getError(error);
     } finally {
-        if (connection) connection.destroy();
+        connection?.release();
     }
 };
 
